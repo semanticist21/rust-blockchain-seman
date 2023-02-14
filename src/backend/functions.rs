@@ -1,23 +1,25 @@
-use std::io::Read;
-
-pub fn u32_bytes(&item: &u32) -> [u8; 4] {
+pub const fn u32_bytes(&item: &u32) -> [u8; 4] {
     item.to_le_bytes()
 }
 
-pub fn u64_bytes(&item: &u64) -> [u8; 8] {
+pub const fn u64_bytes(&item: &u64) -> [u8; 8] {
     item.to_le_bytes()
 }
 
-pub fn u128_bytes(&item: &u128) -> [u8; 16] {
+pub const fn u128_bytes(&item: &u128) -> [u8; 16] {
     item.to_le_bytes()
 }
 
-pub fn i64_bytes(&item: &i64) -> [u8; 8] {
+pub const fn _i64_bytes(&item: &i64) -> [u8; 8] {
     item.to_le_bytes()
+}
+
+pub const fn hash_array() -> [u8; 32] {
+    [0 as u8; 32]
 }
 
 // little endian
-pub fn difficulty_bytes_as_u128(v: &[u8]) -> u128 {
+pub const fn difficulty_bytes_as_u128(v: &[u8]) -> u128 {
     // let new_vec = arr.iter().take(16).copied().collect::<Vec<u8>>();
 
     // let mut new_arr:[u8;16] = [0;16];
@@ -47,11 +49,11 @@ pub fn difficulty_bytes_as_u128(v: &[u8]) -> u128 {
         | ((v[16] as u128) << 0x0 * 8)
 }
 
-pub fn check_difficulty(hash_bytes: &[u8], difficulty: &u128) -> bool {
+pub const fn check_difficulty(hash_bytes: &[u8], difficulty: &u128) -> bool {
     if hash_bytes.len() != 32 {
         panic!();
     }
 
     // println!("{}",difficulty_bytes_as_u128(&hash_bytes));
-    difficulty > &difficulty_bytes_as_u128(&hash_bytes)
+    *difficulty > difficulty_bytes_as_u128(&hash_bytes)
 }

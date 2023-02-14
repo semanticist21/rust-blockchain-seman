@@ -5,11 +5,7 @@ use std::fmt::Formatter;
 use chrono::{Timelike, Utc};
 use crypto::{digest::Digest, sha2::*};
 
-use super::functions::u32_bytes;
-use super::{
-    functions::{check_difficulty, u128_bytes, u64_bytes},
-    hashable::Hashable,
-};
+use crate::backend::{functions::*, Hashable};
 
 pub struct Block {
     index: u64,
@@ -22,29 +18,24 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(index: u64, prev_block: Option<Sha256>, difficulty: u128, payload: String) -> Block {
+    pub fn new(index: u64, prev_block: Option<Sha256>, payload: String) -> Block {
         Block {
             index,
             timestamp: Utc::now().nanosecond(),
             prev: prev_block,
             nonce: 0,
-            difficulty,
+            difficulty: 0x000ffffffffffffffffffffffffffff,
             payload,
             hash: Sha256::new(),
         }
     }
 
     pub fn gen_genesis() -> Block {
-        Block::new(
-            0,
-            None,
-            0x0000fffffffffffffffffffffffffff,
-            "Genesis Block".to_string(),
-        )
+        Block::new(0, None, "Genesis Block".to_string())
     }
 
     pub fn mine(&mut self) {
-        let mut arr: [u8; 32] = [0; 32];
+        let mut arr: [u8; 32] = hash_array();
 
         for nonce_target in 0..u64::MAX {
             self.nonce = nonce_target;
@@ -84,16 +75,14 @@ impl Block {
         &self.hash
     }
 
-    pub fn get_mut_cur_hash(&mut self) -> &mut Sha256{
-        &mut self.hash
-    }
-
     pub fn current_hash_str(&self) -> String {
         self.hash.clone().result_str()
     }
 
     pub fn current_hash_bytes(&mut self) -> [u8; 32] {
-        let mut arr:[u8;32] = [0;32];
+        let mut arr: [u8; 32] = hash_array();
+
+        self.hash.result(&mut arr);
 
         arr
     }
@@ -103,6 +92,20 @@ impl Block {
             Some(prev_unwrapped) => prev_unwrapped.clone().result_str(),
             None => "".to_string(),
         }
+    }
+
+    pub fn prev_hash_bytes(&self) -> [u8; 32] {
+        let mut arr: [u8; 32] = hash_array();
+
+        arr = match &self.prev {
+            Some(prev_unwrapped) => {
+                prev_unwrapped.clone().result(&mut arr);
+                arr
+            }
+            None => arr,
+        };
+
+        arr
     }
 }
 
@@ -136,8 +139,8 @@ impl Debug for Block {
 
         write!(
             f,
-            "block hash -{},\n timestamp - {},\n payload - {}",
-            hash_str, self.timestamp, self.payload
+            "index - {}\n block hash - {},\n timestamp - {},\n payload - {}",
+            self.index, hash_str, self.timestamp, self.payload
         )
     }
 }
@@ -177,5 +180,5 @@ fn _mint_virtual_block() -> Block {
     let mut hasher = Sha256::new();
     hasher.input(letter);
 
-    Block::new(0, None, 1, String::from_utf8(letter.to_vec()).unwrap())
+    Block::new(0, None, String::from_utf8(letter.to_vec()).unwrap())
 }

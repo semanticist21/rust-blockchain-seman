@@ -1,5 +1,8 @@
 use crypto::{digest::Digest, sha2::Sha256};
 
+use crate::backend::functions::hash_array;
+
+
 pub trait Hashable {
     fn bytes(&self) -> Vec<u8>;
 
@@ -14,7 +17,7 @@ pub trait Hashable {
     }
 
     fn get_vec(hash: &mut Sha256) -> Vec<u8> {
-        let mut arr: [u8; 32] = [0; 32];
+        let mut arr: [u8; 32] = hash_array();
 
         hash.result(&mut arr);
 

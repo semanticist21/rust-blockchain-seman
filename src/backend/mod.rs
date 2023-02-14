@@ -1,7 +1,13 @@
-mod block;
-mod hashable;
+// mods
+mod traits;
 mod functions;
-mod blockchain;
 
-pub use block::Block;
-pub use blockchain::Blockchain;
+mod block;
+mod enums;
+
+mod transaction;
+
+// structs
+pub use block::block::Block;
+pub use block::blockchain::Blockchain;
+pub use traits::hashable::Hashable;
