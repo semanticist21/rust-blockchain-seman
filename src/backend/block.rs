@@ -2,16 +2,18 @@ use core::fmt::Debug;
 use std::fmt;
 use std::fmt::Formatter;
 
-use chrono::{DateTime, Utc};
+use chrono::{Timelike, Utc};
 use crypto::{digest::Digest, sha2::*};
 
-use crate::*;
-
-use super::hashable::Hashable;
+use super::functions::u32_bytes;
+use super::{
+    functions::{check_difficulty, u128_bytes, u64_bytes},
+    hashable::Hashable,
+};
 
 pub struct Block {
     index: u64,
-    timestamp: DateTime<Utc>,
+    timestamp: u32,
     prev: Option<Sha256>,
     nonce: u64,
     difficulty: u128,
@@ -20,21 +22,40 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(
-        index: u64,
-        prev_block: Option<Sha256>,
-        nonce: u64,
-        difficulty: u128,
-        payload: String,
-    ) -> Block {
+    pub fn new(index: u64, prev_block: Option<Sha256>, difficulty: u128, payload: String) -> Block {
         Block {
             index,
-            timestamp: Utc::now(),
+            timestamp: Utc::now().nanosecond(),
             prev: prev_block,
-            nonce,
+            nonce: 0,
             difficulty,
             payload,
             hash: Sha256::new(),
+        }
+    }
+
+    pub fn mine(&mut self) {
+        let mut arr: [u8; 32] = [0; 32];
+
+        for nonce_target in 0..u64::MAX {
+            self.nonce = nonce_target;
+
+            let mut hash_result = self.hash();
+            hash_result.result(&mut arr);
+
+            let is_pass = check_difficulty(&arr, &self.difficulty);
+
+            if is_pass {
+                self.hash = self.hash();
+                println!(
+                    "mine attempt success. nonce : {}\n hash : {}",
+                    nonce_target,
+                    self.hash.result_str()
+                );
+                return;
+            }
+
+            continue;
         }
     }
 
@@ -51,12 +72,13 @@ impl Block {
 }
 
 impl Hashable for Block {
-    // generate vec of bytes with information given in the Block
+    // generate vec of bytes with information given in the Block.
+    // hash for self is not included.
     fn bytes(&self) -> Vec<u8> {
         let mut result = vec![];
 
         result.extend(u64_bytes(&self.index));
-        result.extend(i64_bytes(&self.timestamp.timestamp()));
+        result.extend(u32_bytes(&self.timestamp));
 
         let prev_has_str = self.get_prev_hash_str();
 
@@ -67,6 +89,7 @@ impl Hashable for Block {
 
         result.extend(u64_bytes(&self.nonce));
         result.extend(self.payload.as_bytes());
+        result.extend(u128_bytes(&self.difficulty));
 
         result
     }
@@ -93,20 +116,6 @@ fn test_check_block() {
 }
 
 #[test]
-fn test_print_timestamps() {
-    let block = _mint_virtual_block();
-
-    let a = block.timestamp.to_rfc2822();
-    println!("{}", a);
-    let b = block.timestamp.to_string();
-    println!("{}", b);
-    let c = block.timestamp.timestamp_subsec_micros();
-    println!("{}", c);
-    let d = block.timestamp.timestamp();
-    println!("{}", d);
-}
-
-#[test]
 fn test_byte_trasnform() {
     let block = _mint_virtual_block();
 
@@ -117,10 +126,13 @@ fn test_byte_trasnform() {
 
 #[test]
 fn test_difficulty_func() {
+    use crate::backend::functions::difficulty_bytes_as_u128;
+
     let block = _mint_virtual_block();
     let bytes_vec = block.bytes();
     let result = difficulty_bytes_as_u128(&bytes_vec);
 
+    println!("{:?}", bytes_vec);
     println!("{}", result);
 }
 
@@ -130,5 +142,5 @@ fn _mint_virtual_block() -> Block {
     let mut hasher = Sha256::new();
     hasher.input(letter);
 
-    Block::new(0, None, 1, 1, String::from_utf8(letter.to_vec()).unwrap())
+    Block::new(0, None, 1, String::from_utf8(letter.to_vec()).unwrap())
 }
