@@ -34,6 +34,15 @@ impl Block {
         }
     }
 
+    pub fn gen_genesis() -> Block {
+        Block::new(
+            0,
+            None,
+            0x0000fffffffffffffffffffffffffff,
+            "Genesis Block".to_string(),
+        )
+    }
+
     pub fn mine(&mut self) {
         let mut arr: [u8; 32] = [0; 32];
 
@@ -59,11 +68,37 @@ impl Block {
         }
     }
 
-    pub fn get_current_hash_str(&self) -> String {
+    pub fn idx(&self) -> &u64 {
+        &self.index
+    }
+
+    pub fn timestamp(&self) -> &u32 {
+        &self.timestamp
+    }
+
+    pub fn difficulty(&self) -> &u128 {
+        &self.difficulty
+    }
+
+    pub fn current_hash(&self) -> &Sha256 {
+        &self.hash
+    }
+
+    pub fn get_mut_cur_hash(&mut self) -> &mut Sha256{
+        &mut self.hash
+    }
+
+    pub fn current_hash_str(&self) -> String {
         self.hash.clone().result_str()
     }
 
-    pub fn get_prev_hash_str(&self) -> String {
+    pub fn current_hash_bytes(&mut self) -> [u8; 32] {
+        let mut arr:[u8;32] = [0;32];
+
+        arr
+    }
+
+    pub fn prev_hash_str(&self) -> String {
         match &self.prev {
             Some(prev_unwrapped) => prev_unwrapped.clone().result_str(),
             None => "".to_string(),
@@ -80,7 +115,7 @@ impl Hashable for Block {
         result.extend(u64_bytes(&self.index));
         result.extend(u32_bytes(&self.timestamp));
 
-        let prev_has_str = self.get_prev_hash_str();
+        let prev_has_str = self.prev_hash_str();
 
         //put if prev exists.
         if prev_has_str != "" {
