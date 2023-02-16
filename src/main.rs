@@ -1,61 +1,50 @@
-use rust_blockchain_seman::backend::{Transaction, Output, Block, BlockChain};
+use chrono::Utc;
+use crypto::{digest::Digest, sha2::Sha256};
+use rust_blockchain_seman::backend::{
+    get_genesis_hasher, get_hash, Block, BlockChain, Transaction, Transactions,
+};
 
 fn main() {
-    test_process();
+    _test_process();
+    // test sucessful!
 }
 
-fn test_process(){
-    // input should be empty - genesis block
-    let transaction_genesis = Transaction{
-        inputs: vec![],
-        outputs: vec![
-            Output::new("Alice".to_string(), 500),
-            Output::new("Bob".to_string(), 1000),
-        ],
-    };
+fn _test_process() {
+    // genesis block
+    let genesis_block = Block::gen_genesis();
+    // println!("{}", genesis_block.timestamp());
+    let mut block_chain = BlockChain::new();
 
-    let tx_vec = vec![transaction_genesis];
-    let genesis_block = Block::gen_genesis(tx_vec);
+    _ = block_chain.update_block(genesis_block);
 
+    let mut broadcaster_hasher = Sha256::new();
+    broadcaster_hasher.input_str("broadcaster");
 
-    let mut blockchain = BlockChain::new();
-    
-    blockchain.update_block(genesis_block)
-    .expect("the program panicked.");
-    
-    // second block
-    let transaction_second = Transaction{
-        inputs: vec![
-            Output::new("Alice".to_string(), 500),
-        ],
-        outputs: vec![
-            Output::new("Alice".to_string(), 450),
-            Output::new("Bob".to_string(), 40),
-        ],
-    };
-    let tx_vec = vec![transaction_second];
+    let _broadcaster = broadcaster_hasher.result_str();
 
-    let last = blockchain.last().unwrap();
+    let mut transactions = Transactions::empty();
 
-    let block = Block::mine(last.index() + 1, tx_vec);
-    blockchain.update_block(block).expect("print error");
+    let test_wallet_1 = get_hash("Bob".to_string());
+    let test_wallet_2 = get_hash("Tom".to_string());
+    let test_wallet_3 = get_hash("John".to_string());
 
+    let tx1 = Transaction::new(get_genesis_hasher(), test_wallet_3.clone(), 50);
+    let tx2 = Transaction::new(test_wallet_3.clone(), test_wallet_2, 50);
+    let tx3 = Transaction::new(get_genesis_hasher(), test_wallet_3, 50);
+
+    transactions.values_mut().push(tx1);
+    transactions.values_mut().push(tx2);
+    transactions.values_mut().push(tx3);
+
+    let new_block = Block::mine(
+        block_chain.get_block_size() as u64 + 1,
+        transactions,
+        broadcaster_hasher.result_str(),
+    );
+
+    let err = block_chain.update_block(new_block);
+
+    println!("{:?}",err);
+    println!("{:?}", block_chain.get_block_size());
+    println!("{:?}", block_chain.value_store());
 }
-
-//dummy code
-
-// let payload = "Genesis Block".to_string();
-// let mut block = Block::new(0, None, 0x0000fffffffffffffffffffffffffff, payload);
-
-// let current_hash = block.current_hash_str();
-// // println!("{}", current_hash);
-
-// // println!("{:?}", bytes);
-
-// block.mine();
-
-// // print!("{:?}", block);
-
-// for i in 1..=10 {
-//     println!("{}", i);
-// }

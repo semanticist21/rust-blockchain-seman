@@ -5,37 +5,36 @@ use std::fmt::Formatter;
 use chrono::{Timelike, Utc};
 use crypto::{digest::Digest, sha2::*};
 
-use crate::backend::{functions::*, types::Hash, Hashable, Transaction};
+use crate::backend::{functions::*, types::Hash, Hashable, Transaction, Transactions};
 
 pub struct Block {
     index: u64,
-    timestamp: u32,
+    timestamp: u64,
     prev: Option<Sha256>,
     nonce: u64,
     difficulty: u128,
-    transactions: Vec<Transaction>,
+    transactions: Transactions,
     hash: Sha256,
+    broadcaster_addr: Hash,
 }
 
 impl Block {
-    pub fn new(index: u64, prev_block: Option<Sha256>, transaction: Vec<Transaction>) -> Block {
-        Block {
-            index,
-            timestamp: Utc::now().nanosecond(),
-            prev: prev_block,
-            nonce: 0,
-            difficulty: 0x000ffffffffffffffffffffffffffff,
-            transactions: transaction,
-            hash: Sha256::new(),
-        }
+    pub fn gen_genesis() -> Block {
+        let mut initial_tx = Transactions::empty();
+        const INITIAL_BALANCE: u64 = 5000;
+
+        let mut init_wallet = Sha256::new();
+        init_wallet.input_str("Genesis Block");
+        let result_hash = init_wallet.result_str();
+
+        let initial_output = Transaction::new("".to_string(), result_hash.clone(), INITIAL_BALANCE);
+        initial_tx.values_mut().push(initial_output);
+
+        Block::mine(0, initial_tx, result_hash)
     }
 
-    pub fn gen_genesis(transactions: Vec<Transaction>) -> Block {
-        Block::new(0, None, transactions)
-    }
-
-    pub fn mine(block_idx: u64, transaction: Vec<Transaction>) -> Block{
-        let mut block = Block::new(block_idx, None, transaction);
+    pub fn mine(block_idx: u64, transactions: Transactions, broadcaster_addr: Hash) -> Block {
+        let mut block = Block::new(block_idx, None, transactions, broadcaster_addr);
 
         let mut arr: [u8; 32] = hash_array();
 
@@ -61,6 +60,24 @@ impl Block {
         }
 
         block
+    }
+
+    fn new(
+        index: u64,
+        prev_block: Option<Sha256>,
+        transaction: Transactions,
+        broadcaster_addr: Hash,
+    ) -> Block {
+        Block {
+            index,
+            timestamp: Utc::now().timestamp_nanos() as u64,
+            prev: prev_block,
+            nonce: 0,
+            difficulty: 0x000ffffffffffffffffffffffffffff,
+            transactions: transaction,
+            hash: Sha256::new(),
+            broadcaster_addr,
+        }
     }
 
     fn _mine(&mut self) {
@@ -92,7 +109,7 @@ impl Block {
         self.index
     }
 
-    pub fn timestamp(&self) -> u32 {
+    pub fn timestamp(&self) -> u64 {
         self.timestamp
     }
 
@@ -104,15 +121,19 @@ impl Block {
         &self.hash
     }
 
-    pub fn transactions(&self) -> &Vec<Transaction> {
+    pub fn transactions(&self) -> &Transactions {
         &self.transactions
+    }
+
+    pub fn broadcaster(&self) -> &Hash {
+        &self.broadcaster_addr
     }
 
     pub fn current_hash_str(&self) -> Hash {
         self.hash.clone().result_str()
     }
 
-    pub fn set_prev_block(&mut self, hash: Sha256){
+    pub fn set_prev_block(&mut self, hash: Sha256) {
         self.prev = Some(hash);
     }
 
@@ -153,7 +174,7 @@ impl Hashable for Block {
         let mut result = vec![];
 
         result.extend(u64_bytes(&self.index));
-        result.extend(u32_bytes(&self.timestamp));
+        result.extend(u64_bytes(&self.timestamp));
 
         let prev_has_str = self.prev_hash_str();
 
@@ -164,6 +185,7 @@ impl Hashable for Block {
 
         let tx_vec = self
             .transactions
+            .values()
             .iter()
             .flat_map(|x| {
                 let mut hash_arr = hash_array();
@@ -228,5 +250,5 @@ fn _mint_virtual_block() -> Block {
     hasher.input(letter);
 
     // Block::new(0, None, String::from_utf8(letter.to_vec()).unwrap())
-    Block::new(0, None, vec![])
+    Block::new(0, None, Transactions::empty(), hasher.result_str())
 }

@@ -1,78 +1,42 @@
-// Check point..
-// overspending
-// double-spending
-// impersonation
-
-use std::collections::HashSet;
-
-use crypto::{digest::Digest, sha2::Sha256};
-
-use crate::backend::{types::Hash, Hashable, Output};
+use crate::backend::{types::Address, types::Hash, Hashable};
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
-    pub inputs: Vec<Output>,
-    pub outputs: Vec<Output>,
+    from_address: Address,
+    to_address: Address,
+    value: u64,
 }
 
 impl Transaction {
-    pub fn empty() -> Transaction {
+    pub fn new(from_address: Hash, to_address: Hash, value: u64) -> Self {
         Transaction {
-            inputs: vec![],
-            outputs: vec![],
+            from_address,
+            to_address,
+            value,
         }
     }
 
-    pub fn input_value(&self) -> u64 {
-        self.inputs.iter().map(|output| output.value()).sum()
+    pub fn value(&self) -> &u64 {
+        &self.value
     }
 
-    pub fn output_value(&self) -> u64 {
-        self.outputs.iter().map(|input| input.value()).sum()
+    pub fn from_address(&self) -> &Address{
+        &self.from_address
     }
 
-    pub fn input_hashes(&self) -> HashSet<Hash> {
-        self.outputs
-            .iter()
-            .map(|input| Self::hash_str(input.hash()))
-            .collect::<HashSet<Hash>>()
-    }
-
-    pub fn output_hashes(&self) -> HashSet<Hash> {
-        self.outputs
-            .iter()
-            .map(|output| Self::hash_str(output.hash()))
-            .collect::<HashSet<Hash>>()
-    }
-
-    pub fn is_coinbase(&self) -> bool {
-        self.inputs.len() == 0
-    }
-
-    fn hash_str(mut sha256: Sha256) -> Hash {
-        sha256.result_str()
+    pub fn to_address(&self) -> &Address{
+        &&self.to_address
     }
 }
 
 impl Hashable for Transaction {
     fn bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![];
+        let mut result = vec![];
 
-        let vec_input = self
-            .inputs
-            .iter()
-            .flat_map(|output| output.bytes())
-            .collect::<Vec<u8>>();
+        result.extend(self.from_address.as_bytes());
+        result.extend(self.to_address.as_bytes());
+        result.extend(self.value.to_le_bytes());
 
-        let vec_output = self
-            .outputs
-            .iter()
-            .flat_map(|output| output.bytes())
-            .collect::<Vec<u8>>();
-
-        bytes.extend(vec_input);
-        bytes.extend(vec_output);
-
-        bytes
+        result
     }
 }

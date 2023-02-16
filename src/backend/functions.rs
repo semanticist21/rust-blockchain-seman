@@ -1,3 +1,5 @@
+use crypto::{sha2::Sha256, digest::Digest};
+
 pub const fn u32_bytes(&item: &u32) -> [u8; 4] {
     item.to_le_bytes()
 }
@@ -56,4 +58,18 @@ pub const fn check_difficulty(hash_bytes: &[u8], difficulty: &u128) -> bool {
 
     // println!("{}",difficulty_bytes_as_u128(&hash_bytes));
     *difficulty > difficulty_bytes_as_u128(&hash_bytes)
+}
+
+pub fn get_genesis_hasher() -> String {
+    let mut init_wallet = Sha256::new();
+    init_wallet.input_str("Genesis Block");
+    let result_hash = init_wallet.result_str();
+    result_hash
+}
+
+pub fn get_hash(word: String) -> String{
+    let mut hasher = Sha256::new();
+    hasher.input_str(&word);
+
+    hasher.result_str()
 }
