@@ -19,7 +19,8 @@ impl ValueStore {
         }
 
         let last_block = block_chain.last().unwrap();
-        if last_block.current_hash_str() == rewarder {
+
+        if *last_block.broadcaster() == rewarder {
             if let Some(value) = self.values_store.get_mut(&rewarder) {
                 *value = *value + 1;
             } else {
