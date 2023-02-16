@@ -25,7 +25,7 @@ impl Transaction {
     }
 
     pub fn to_address(&self) -> &Address{
-        &&self.to_address
+        &self.to_address
     }
 }
 
