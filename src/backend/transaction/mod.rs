@@ -1,3 +1,2 @@
-pub struct transaction {}
-
-impl transaction {}
+pub mod transaction;
+pub mod output;

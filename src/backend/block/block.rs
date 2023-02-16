@@ -5,7 +5,7 @@ use std::fmt::Formatter;
 use chrono::{Timelike, Utc};
 use crypto::{digest::Digest, sha2::*};
 
-use crate::backend::{functions::*, Hashable};
+use crate::backend::{functions::*, types::Hash, Hashable, Transaction};
 
 pub struct Block {
     index: u64,
@@ -13,28 +13,57 @@ pub struct Block {
     prev: Option<Sha256>,
     nonce: u64,
     difficulty: u128,
-    payload: String,
+    transactions: Vec<Transaction>,
     hash: Sha256,
 }
 
 impl Block {
-    pub fn new(index: u64, prev_block: Option<Sha256>, payload: String) -> Block {
+    pub fn new(index: u64, prev_block: Option<Sha256>, transaction: Vec<Transaction>) -> Block {
         Block {
             index,
             timestamp: Utc::now().nanosecond(),
             prev: prev_block,
             nonce: 0,
             difficulty: 0x000ffffffffffffffffffffffffffff,
-            payload,
+            transactions: transaction,
             hash: Sha256::new(),
         }
     }
 
-    pub fn gen_genesis() -> Block {
-        Block::new(0, None, "Genesis Block".to_string())
+    pub fn gen_genesis(transactions: Vec<Transaction>) -> Block {
+        Block::new(0, None, transactions)
     }
 
-    pub fn mine(&mut self) {
+    pub fn mine(block_idx: u64, transaction: Vec<Transaction>) -> Block{
+        let mut block = Block::new(block_idx, None, transaction);
+
+        let mut arr: [u8; 32] = hash_array();
+
+        for nonce_target in 0..u64::MAX {
+            block.nonce = nonce_target;
+
+            let mut hash_result = block.hash();
+            hash_result.result(&mut arr);
+
+            let is_pass = check_difficulty(&arr, &block.difficulty);
+
+            if is_pass {
+                block.hash = block.hash();
+                println!(
+                    "mine attempt success. nonce : {}\n hash : {}",
+                    nonce_target,
+                    block.hash.result_str()
+                );
+                break;
+            }
+
+            continue;
+        }
+
+        block
+    }
+
+    fn _mine(&mut self) {
         let mut arr: [u8; 32] = hash_array();
 
         for nonce_target in 0..u64::MAX {
@@ -59,24 +88,32 @@ impl Block {
         }
     }
 
-    pub fn idx(&self) -> &u64 {
-        &self.index
+    pub fn index(&self) -> u64 {
+        self.index
     }
 
-    pub fn timestamp(&self) -> &u32 {
-        &self.timestamp
+    pub fn timestamp(&self) -> u32 {
+        self.timestamp
     }
 
-    pub fn difficulty(&self) -> &u128 {
-        &self.difficulty
+    pub fn difficulty(&self) -> u128 {
+        self.difficulty
     }
 
     pub fn current_hash(&self) -> &Sha256 {
         &self.hash
     }
 
-    pub fn current_hash_str(&self) -> String {
+    pub fn transactions(&self) -> &Vec<Transaction> {
+        &self.transactions
+    }
+
+    pub fn current_hash_str(&self) -> Hash {
         self.hash.clone().result_str()
+    }
+
+    pub fn set_prev_block(&mut self, hash: Sha256){
+        self.prev = Some(hash);
     }
 
     pub fn current_hash_bytes(&mut self) -> [u8; 32] {
@@ -87,7 +124,7 @@ impl Block {
         arr
     }
 
-    pub fn prev_hash_str(&self) -> String {
+    pub fn prev_hash_str(&self) -> Hash {
         match &self.prev {
             Some(prev_unwrapped) => prev_unwrapped.clone().result_str(),
             None => "".to_string(),
@@ -125,8 +162,18 @@ impl Hashable for Block {
             result.extend(prev_has_str.as_bytes());
         }
 
+        let tx_vec = self
+            .transactions
+            .iter()
+            .flat_map(|x| {
+                let mut hash_arr = hash_array();
+                x.hash().result(&mut hash_arr);
+                hash_arr
+            })
+            .collect::<Vec<u8>>();
+
         result.extend(u64_bytes(&self.nonce));
-        result.extend(self.payload.as_bytes());
+        result.extend(tx_vec);
         result.extend(u128_bytes(&self.difficulty));
 
         result
@@ -139,8 +186,8 @@ impl Debug for Block {
 
         write!(
             f,
-            "index - {}\n block hash - {},\n timestamp - {},\n payload - {}",
-            self.index, hash_str, self.timestamp, self.payload
+            "index - {}\n block hash - {},\n timestamp - {},\n transaction - {:?}",
+            self.index, hash_str, self.timestamp, self.transactions
         )
     }
 }
@@ -180,5 +227,6 @@ fn _mint_virtual_block() -> Block {
     let mut hasher = Sha256::new();
     hasher.input(letter);
 
-    Block::new(0, None, String::from_utf8(letter.to_vec()).unwrap())
+    // Block::new(0, None, String::from_utf8(letter.to_vec()).unwrap())
+    Block::new(0, None, vec![])
 }
