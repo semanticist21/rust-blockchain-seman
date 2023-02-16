@@ -335,7 +335,7 @@ fn test_verify_blocks() {
 
     // let str: &str = "anotehr blcok";
 
-    let mut last_block = None;
+    // let mut last_block = None;
     let mut hasher = Sha256::new();
     hasher.input_str("Broadcaster");
 
@@ -343,7 +343,7 @@ fn test_verify_blocks() {
         println!("{}", i);
         // let mut block = Block::new(i, Some(last_hash.clone()), vec![]);
         let block = Block::mine(1, Transactions::empty(), hasher.result_str());
-        last_block = Some(block.current_hash().clone());
+        // last_block = Some(block.current_hash().clone());
 
         last_hash = block.current_hash().clone();
         blk_chain._push(block);

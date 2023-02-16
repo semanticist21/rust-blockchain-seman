@@ -1,4 +1,4 @@
-use crate::backend::{enums::BlockValidationError, types::Hash, Block, BlockChain, Hashable};
+use crate::backend::{enums::BlockValidationError, types::Hash, Block};
 use std::collections::HashMap;
 
 #[derive(Debug)]

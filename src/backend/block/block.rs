@@ -2,7 +2,7 @@ use core::fmt::Debug;
 use std::fmt;
 use std::fmt::Formatter;
 
-use chrono::{Timelike, Utc};
+use chrono::Utc;
 use crypto::{digest::Digest, sha2::*};
 
 use crate::backend::{functions::*, types::Hash, Hashable, Transaction, Transactions};

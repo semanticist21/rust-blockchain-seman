@@ -1,15 +1,15 @@
-use chrono::Utc;
 use crypto::{digest::Digest, sha2::Sha256};
 use rust_blockchain_seman::backend::{
     get_genesis_hasher, get_hash, Block, BlockChain, Transaction, Transactions,
 };
 
 fn main() {
-    _test_process();
+    test_process();
     // test sucessful!
+    loop {}
 }
 
-fn _test_process() {
+fn test_process() {
     // genesis block
     let genesis_block = Block::gen_genesis();
     // println!("{}", genesis_block.timestamp());
@@ -28,8 +28,8 @@ fn _test_process() {
     let test_wallet_2 = get_hash("Tom".to_string());
     let test_wallet_3 = get_hash("John".to_string());
 
-    let tx1 = Transaction::new(get_genesis_hasher(), test_wallet_3.clone(), 50);
-    let tx2 = Transaction::new(test_wallet_3.clone(), test_wallet_2, 50);
+    let tx1 = Transaction::new(get_genesis_hasher(), test_wallet_1.clone(), 50);
+    let tx2 = Transaction::new(test_wallet_1.clone(), test_wallet_2.clone(), 50);
     let tx3 = Transaction::new(get_genesis_hasher(), test_wallet_3, 50);
 
     transactions.values_mut().push(tx1);
@@ -44,7 +44,7 @@ fn _test_process() {
 
     let err = block_chain.update_block(new_block);
 
-    println!("{:?}",err);
+    println!("{:?}", err);
     println!("{:?}", block_chain.get_block_size());
     println!("{:?}", block_chain.value_store());
 }
